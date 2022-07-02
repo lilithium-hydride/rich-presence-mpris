@@ -1,0 +1,13 @@
+[package]
+name = "rich-presence-mpris"
+version = "0.1.0"
+edition = "2021"
+authors = ["lilithium-hydride"]
+description = "MPRIS "
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+discord-rich-presence = "0.1.8"
+mpris = "2.0.0-rc2"
+urlencoding = "2.1.0"

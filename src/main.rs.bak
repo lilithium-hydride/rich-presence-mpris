@@ -1,0 +1,72 @@
+#![feature(iter_intersperse)]
+
+use std::time::{SystemTime, UNIX_EPOCH};
+use mpris::{PlayerFinder};
+use discord_rich_presence::{activity, new_client, DiscordIpc};
+use discord_rich_presence::activity::Timestamps;
+use urlencoding::encode;
+
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+	let player = PlayerFinder::new()
+		.expect("Could not connect to D-Bus")
+		.find_active()
+		.expect("Could not find any player");
+
+	let mut client = new_client("946585878741024789")?;
+	client.connect()?;
+	println!("Connected!");
+
+	let mut url_old: Vec<String> = "".trim().split(" ").map(String::from).collect();
+	let mut url: Vec<String>;
+	loop {
+		let metadata;
+		metadata = player.get_metadata().expect("Could not get metadata for player");
+
+		//println!("{:#?}", metadata);
+		url = metadata.url().unwrap().trim().split(" ").map(String::from).collect();
+
+
+		
+		let title: &str = metadata.title().unwrap();
+		let album: &str = metadata.album_name().unwrap();
+		let artists: &str = &metadata.artists().unwrap().into_iter().intersperse(&", ").map(|x| x.to_string()).collect::<std::string::String>();
+		//let album_artists: &str = &metadata.album_artists().unwrap().into_iter().intersperse(&", ").map(|x| x.to_string()).collect::<std::string::String>();
+
+		let line_1: &str = &(artists.to_owned() + ": " + album);
+		let line_2: &str = title;
+		let button_search_url = &(artists.to_owned() + " - " + title);
+		let button_search_url = &("https://www.last.fm/search/tracks?q=".to_owned() + &*encode(button_search_url));
+		
+		
+		let timestamps: Timestamps = Timestamps::new().start(SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64);
+
+		if url != url_old {
+			let payload = activity::Activity::new()
+				.details(line_1)
+				.state(line_2)
+				//.party(Party::new().size([1, 10]))
+				.timestamps(timestamps)
+				.assets(
+					activity::Assets::new()
+						.large_image("cat1")
+						.large_text("rich presence api bad. no album art. here is cat instead.")
+				)
+				.buttons(vec![
+					activity::Button::new(
+						"Find on Last.fm",
+						button_search_url,
+					),
+				]);
+			client.set_activity(payload)?;
+		}
+
+		url_old = url;
+		std::thread::sleep(std::time::Duration::from_secs(1));
+	}
+
+	client.close()?;
+
+
+	Ok(())
+}
