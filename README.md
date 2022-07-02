@@ -4,6 +4,7 @@ A simple, lightweight, configurable program that retrieves currently-playing med
 
 
 ### To-Do:
- [x] Retrieve MPRIS data
- [x] Display as Discord status
- [ ] Satisfy other arbitrary goals detailed above
+
+- [x] Retrieve MPRIS data
+- [x] Display as Discord status
+- [ ] Satisfy other arbitrary goals detailed above
