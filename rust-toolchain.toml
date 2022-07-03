@@ -1,2 +1,4 @@
+# Nightly is required when using `.intersperse()`
+# (or any unstable features for that matter)
 [toolchain]
 channel = "nightly"
