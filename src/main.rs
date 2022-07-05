@@ -25,9 +25,6 @@ use discord_rich_presence::{
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-	let mut rpc_client = DiscordIpcClient::new("946585878741024789")?;
-	rpc_client.connect()?;
-
 	
 	let (update_tx, update_rx): (mpsc::Sender<mpris::Event>, mpsc::Receiver<mpris::Event>)
 		= mpsc::channel();
@@ -35,6 +32,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 	{
 		let (update_tx, update_rx) = (update_tx.clone(), update_rx);
 		thread::spawn(move || {
+			let mut rpc_client = DiscordIpcClient::new("946585878741024789")
+				.expect("Failed to initialize Discord RPC client");
+			
+			loop {
+				match rpc_client.connect() {
+					Ok(_) => { 
+						eprintln!("RPC connected");
+						break;
+					}
+					Err(err) => {
+						eprintln!("Failed to connect to Discord. Is it running?\n\tError: {err}");
+						
+						// Empty the receiver buffer so it doesn't spam Discord when it opens.
+						for _ in update_rx.try_recv().into_iter() {}
+					}
+				}
+				thread::sleep(Duration::from_secs(1));
+			}
+
 			let player = mpris::PlayerFinder::new()
 				.expect("D-Bus connection failed")
 				.find_active()
@@ -65,7 +81,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 						| Event::TrackChanged(_) => {
 							metadata = player
 								.get_metadata()
-								.expect("Failed to update data from MPRIS");
+								.expect("Failed to fetch new track metadata");
 						}
 						Event::PlayerShutDown
 						| Event::Stopped => {
@@ -77,21 +93,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 					// Need to verify that the intersperse works with a player
 					// that actually uses MPRIS properly for multiple artists.
-					let artists = metadata
-						.artists()
-						.unwrap()
-						.into_iter()
-						.intersperse(&", ")
-						.map(String::from)
-						.collect::<std::string::String>();
+					let artists = match metadata.artists() {
+						Some(x) => x,
+						None => vec!["N/A"]
+					}.into_iter()
+					 .intersperse(&", ")
+					 .map(String::from)
+					 .collect::<std::string::String>();
 
-					let album = metadata
-						.album_name()
-						.unwrap();
-
-					let title = metadata
-						.title()
-						.unwrap();
+					let title = match metadata.title() {
+						Some(x) => x,
+						None => "N/A"
+					};
+					
+					let album =  match metadata.album_name() { 
+						Some(x) => x,
+						None => title
+					};
 
 					let line_1 = &(artists.as_str().to_owned() + ": " + &album.to_string());
 					let line_2 = &title;
@@ -120,8 +138,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 								button_search_url,
 							),
 						]);
-					rpc_client.set_activity(payload)
-					          .expect("RPC failed to send new activity data to Discord");
+					
+					match rpc_client.set_activity(payload.clone()) {
+						Ok(_) => {}
+						Err(err) => {
+							eprintln!("Failed to update Discord status. Is it running?\n\tError: {err}");
+							eprintln!("Attempting to reconnect…");
+							match rpc_client.reconnect() {
+								Ok(_) => {
+									eprintln!("Reconnect succeeded, resending data…");
+									match rpc_client.set_activity(payload) {
+										Ok(_) => eprintln!("Data successfully resent, connection is normal."),
+										Err(err) => eprintln!("Failed to resend.\n\tError: {err}")
+									}
+								}
+								Err(_) => {
+									eprintln!("Failed to reconnect.");
+								}
+							}
+						}
+					}
 				}
 			}
 		});
@@ -147,7 +183,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 					| Event::TrackMetadataChanged {..}
 					| Event::TrackChanged(_) => {
 						update_tx.send(event.tap_dbg(|x| println!("{:#?}", x)))
-						         .expect("Failed to send MPRIS event update");
+						         .expect("Failed to send MPRIS event update across threads.");
 					}
 					_ => {}
 				}
