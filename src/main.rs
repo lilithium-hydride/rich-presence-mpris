@@ -2,7 +2,6 @@
 
 use std::{thread, sync::mpsc, time::{
 	Duration,
-	Instant,
 	SystemTime,
 	UNIX_EPOCH}, io}
 ;
@@ -184,7 +183,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 					| Event::Seeked { .. }
 					| Event::TrackMetadataChanged {..}
 					| Event::TrackChanged(_) => {
-						update_tx.send(event.tap_dbg(|x| println!("{:#?}", x)))
+						update_tx.send(event.tap_dbg(|x| eprintln!("{:#?}", x)))
 						         .expect("Failed to send MPRIS event update across threads.");
 					}
 					_ => {}
