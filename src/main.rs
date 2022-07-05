@@ -12,6 +12,7 @@ use std::{
 	thread,
 	time::{Duration, SystemTime, UNIX_EPOCH},
 };
+use tap::Pipe;
 use tap::tap::*;
 use urlencoding::encode;
 
@@ -48,6 +49,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 			let mut metadata = player
 				.get_metadata()
 				.expect("Failed to get initial data from MPRIS");
+			let mut is_paused = false;
 			let search_engine_name = "Last.fm";
 			let search_engine_url = "https://www.last.fm/search/tracks?q=";
 
@@ -60,10 +62,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 				for event in update_rx.recv().into_iter() {
 					match event {
 						Event::Playing => {
-							// TODO: Toggle "Elapsed: " timer in status
+							is_paused = false;
 						}
 						Event::Paused => {
-							// TODO: Toggle "Elapsed: " timer in status
+							is_paused = true;
 						}
 						Event::Seeked { .. } => {
 							// TODO: Edit "Elapsed: " timer to reflect new time
@@ -117,14 +119,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 					let payload = Activity::new()
 						.details(line_1)
 						.state(line_2)
-						.timestamps(
-							Timestamps::new().start(
-								SystemTime::now()
-									.duration_since(UNIX_EPOCH)
-									.unwrap()
-									.as_secs() as i64,
-							),
-						)
+						.pipe(|x| {
+							if !is_paused {
+								x.timestamps(
+									Timestamps::new().start(
+										SystemTime::now()
+											.duration_since(UNIX_EPOCH)
+											.unwrap()
+											.as_secs() as i64,
+									),
+								)
+							} else {
+								x
+							}
+						})
 						.assets(Assets::new().large_image("cat1").large_text(
 							"rich presence api bad. no album art. here is cat instead.",
 						))
