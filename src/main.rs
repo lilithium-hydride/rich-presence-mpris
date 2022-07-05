@@ -114,7 +114,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 					let line_1 = &(artists.as_str().to_owned() + ": " + &album.to_string());
 					let line_2 = &title;
-					let button_search_url = &format!("{}{}", search_engine_url, encode(&format!("{} - {}", artists, title)));
+					let button_search_url = &format!("{}{}", 
+					                                 search_engine_url, 
+					                                 encode(&format!("{} - {}", artists, title)));
 					let button_search_text = &format!("Find on {search_engine_name}");
 
 					let payload = Activity::new()
@@ -149,7 +151,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 								Ok(_) => {
 									eprintln!("Reconnect succeeded, resending data…");
 									match rpc_client.set_activity(payload) {
-										Ok(_) => eprintln!("Data successfully resent, connection is normal."),
+										Ok(_) => {
+											eprintln!("Data successfully resent, connection is normal.")
+										}
 										Err(err) => eprintln!("Failed to resend.\n\tError: {err}")
 									}
 								}
