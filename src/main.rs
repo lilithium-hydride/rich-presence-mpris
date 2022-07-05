@@ -48,7 +48,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 						for _ in update_rx.try_recv().into_iter() {}
 					}
 				}
-				thread::sleep(Duration::from_secs(1));
+				thread::sleep(Duration::from_secs(5));
 			}
 
 			let player = mpris::PlayerFinder::new()
