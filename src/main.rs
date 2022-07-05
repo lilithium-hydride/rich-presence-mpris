@@ -76,6 +76,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 						}
 						Event::Seeked { .. } => {
 							// TODO: Edit "Elapsed: " timer to reflect new time
+							// Implementing this will require a music player that actually
+							// reports the event, and not all do for some reason.
 						}
 						Event::TrackMetadataChanged { .. }
 						| Event::TrackChanged(_) => {
