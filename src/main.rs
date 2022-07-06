@@ -93,21 +93,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 						None => vec!["N/A"],
 					}
 					.into_iter()
-					.intersperse(&", ")
+					.intersperse(", ")
 					.map(String::from)
 					.collect::<std::string::String>();
 
-					let title = match metadata.title() {
-						Some(x) => x,
-						None => "N/A",
-					};
+					let title = metadata.title().unwrap_or("N/A");
 
-					let album = match metadata.album_name() {
-						Some(x) => x,
-						None => title,
-					};
+					let album = metadata.album_name().unwrap_or(title);
 
-					let line_1 = &(artists.as_str().to_owned() + ": " + &album.to_string());
+					let line_1 = &(artists.as_str().to_owned() + ": " + album);
 					let line_2 = &title;
 					let button_search_url = &format!(
 						"{}{}",
