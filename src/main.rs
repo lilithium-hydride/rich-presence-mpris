@@ -126,9 +126,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 								x
 							}
 						})
-						.assets(Assets::new().large_image("cat1").large_text(
-							"rich presence api bad. no album art. here is cat instead.",
-						))
+						.assets(Assets::new()
+							.large_image("https://thumbs.dreamstime.com/b/silly-man-5895642.jpg")
+							.large_text("hi :)")
+							.pipe(|x| {
+								if !is_paused {
+									x} else {x
+									.small_image("pause-circle")
+									.small_text("Paused")}
+							})
+						)
 						.buttons(vec![Button::new(button_search_text, button_search_url)]);
 
 					match rpc_client.set_activity(payload.clone()) {
